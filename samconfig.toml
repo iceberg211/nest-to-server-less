@@ -1,0 +1,33 @@
+version = 0.1
+
+[default]
+[default.build]
+[default.build.parameters]
+parallel = true
+
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "nest-serverless"
+s3_bucket = "" # Will be generated automatically
+s3_prefix = "nest-serverless"
+region = "us-east-1" # Change to your preferred region
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = [
+  "DatabaseUrl=\"\"",
+  "DirectUrl=\"\"",
+  "SupabaseUrl=\"\"",
+  "SupabaseKey=\"\""
+]
+
+[default.sync]
+[default.sync.parameters]
+watch = true
+
+[default.local_start_api]
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+
+[default.local_start_lambda]
+[default.local_start_lambda.parameters]
+warm_containers = "EAGER"

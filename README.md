@@ -1,98 +1,79 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# NestJS SAM 部署指南
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 准备工作
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+1. **安装 AWS SAM CLI**
+   ```bash
+   # macOS
+   brew install aws-sam-cli
 
-## Description
+   # 其他平台参考: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html
+   ```
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+2. **配置 AWS 凭证**
+   ```bash
+   aws configure
+   ```
 
-## Project setup
+3. **配置环境变量**
+   ```bash
+   cp .env.production.template .env.production
+   # 编辑 .env.production 填入你的数据库连接信息
+   ```
 
+## 部署步骤
+
+### 1. 构建应用
 ```bash
-$ pnpm install
+pnpm run build:lambda
 ```
 
-## Compile and run the project
-
+### 2. SAM 构建
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+sam build
 ```
 
-## Run tests
-
+### 3. 首次部署（引导式）
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+sam deploy --guided
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
+### 4. 后续部署
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+sam deploy
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 快捷脚本
 
-## Resources
+```bash
+# 本地测试
+pnpm run sam:local
 
-Check out a few resources that may come in handy when working with NestJS:
+# 构建和部署
+pnpm run sam:build
+pnpm run sam:deploy
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# 查看日志
+pnpm run sam:logs
+```
 
-## Support
+## 关键文件说明
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- `src/lambda.ts` - Lambda 处理器（使用 Fastify 适配器，无需 Express 和 serverless-express）
+- `template.yaml` - SAM 模板配置
+- `samconfig.toml` - SAM 部署配置
+- `.env.production.template` - 生产环境变量模板
 
-## Stay in touch
+## 技术选择
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+使用 **@nestjs/platform-fastify** 而不是 Express + serverless-express：
+- 更轻量，性能更好
+- 原生支持 Lambda inject 方法
+- 减少依赖，避免额外的适配层
 
-## License
+## API 访问
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+部署成功后，你的 NestJS API 将通过以下格式访问：
+```
+https://{api-id}.execute-api.{region}.amazonaws.com/prod/api/{endpoint}
+```

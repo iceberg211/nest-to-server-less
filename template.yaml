@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: NestJS Serverless Application
+
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    Timeout: 30
+    MemorySize: 512
+    Environment:
+      Variables:
+        NODE_ENV: production
+
+Parameters:
+  DatabaseUrl:
+    Type: String
+    Description: Database connection URL
+    NoEcho: true
+    Default: ""
+
+  DirectUrl:
+    Type: String
+    Description: Direct database connection URL
+    NoEcho: true
+    Default: ""
+
+  SupabaseUrl:
+    Type: String
+    Description: Supabase URL
+    NoEcho: true
+    Default: ""
+
+  SupabaseKey:
+    Type: String
+    Description: Supabase anonymous key
+    NoEcho: true
+    Default: ""
+
+Resources:
+  NestJSFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: lambda.handler
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+            RestApiId: !Ref ApiGateway
+        RootEvent:
+          Type: Api
+          Properties:
+            Path: /
+            Method: ANY
+            RestApiId: !Ref ApiGateway
+      Environment:
+        Variables:
+          DATABASE_URL: !Ref DatabaseUrl
+          DIRECT_URL: !Ref DirectUrl
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_KEY: !Ref SupabaseKey
+
+  WarmupFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: lambda.warmup
+      Events:
+        WarmupEvent:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
+            Input: '{"source": "warmup"}'
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: NestJS-API
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+      BinaryMediaTypes:
+        - "*/*"
+
+Outputs:
+  ApiUrl:
+    Description: URL of the API Gateway
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiUrl"
+
+  ApiGatewayId:
+    Description: API Gateway ID
+    Value: !Ref ApiGateway
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiGatewayId"
