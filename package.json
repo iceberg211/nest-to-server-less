@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "build:lambda": "nest build && cp package.json dist/ && cd dist && pnpm install --prod",
+    "build:lambda": "rm -rf dist layer && nest build && mkdir -p layer/nodejs && cp package.json pnpm-lock.yaml layer/nodejs/ && cp -R prisma layer/nodejs/prisma && pnpm install --prod --frozen-lockfile --dir layer/nodejs && rm -rf layer/nodejs/prisma",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -17,6 +17,7 @@
     "sam:deploy": "sam deploy --guided",
     "sam:local": "sam local start-api",
     "sam:logs": "sam logs -n NestJSFunction --stack-name nest-serverless --tail",
+    "deploy:aws": "bash deploy.sh",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",

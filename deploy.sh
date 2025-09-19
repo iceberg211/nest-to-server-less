@@ -47,16 +47,13 @@ sam build
 echo "🚀 Deploying to AWS..."
 sam deploy \
   --parameter-overrides \
-    "DatabaseUrl=${DATABASE_URL}" \
-    "DirectUrl=${DIRECT_URL:-}" \
-    "SupabaseUrl=${SUPABASE_URL:-}" \
-    "SupabaseKey=${SUPABASE_KEY:-}"
+    "DatabaseUrl=${DATABASE_URL}"
 
 echo "✅ Deployment completed successfully!"
 
 # Get the API endpoint
 echo "🔗 Getting API endpoint..."
-sam list stack-outputs --stack-name nest-serverless --region us-east-1
+sam list stack-outputs --stack-name nest-serverless --region ap-northeast-1
 
 echo "📋 Next steps:"
 echo "   1. Test your API endpoints"

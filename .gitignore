@@ -1,6 +1,7 @@
 # compiled output
 /dist
 /node_modules
+/layer
 /build
 
 # Logs
@@ -45,7 +46,7 @@ lerna-debug.log*
 # temp directory
 .temp
 .tmp
-
+.aws-sam
 # Runtime data
 pids
 *.pid

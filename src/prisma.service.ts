@@ -8,10 +8,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     const awsDbUrl = process.env.AWS_DATABASE_URL ?? process.env.DATABASE_URL;
 
     const databaseUrl =
-      // Supabase demo database (comment this line to switch to AWS)
-      supabaseDbUrl ??
       // AWS production database (used when Supabase is disabled)
-      awsDbUrl;
+      awsDbUrl ??
+      // Supabase demo database (comment this line to switch to AWS)
+      supabaseDbUrl;
 
     if (!databaseUrl) {
       throw new Error(

@@ -10,33 +10,50 @@ Globals:
     Environment:
       Variables:
         NODE_ENV: production
+    VpcConfig:
+      SecurityGroupIds:
+        - !Ref LambdaSecurityGroup
+      SubnetIds: !Ref PrivateSubnetIds
+    Layers:
+      - !Ref DependenciesLayer
 
 Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC for Lambda functions and database resources
+
+  PrivateSubnetIds:
+    Type: CommaDelimitedList
+    Description: Comma-separated list of private subnet IDs for Lambda functions
+
   DatabaseUrl:
     Type: String
     Description: Database connection URL
     NoEcho: true
-    Default: ""
-
-  DirectUrl:
-    Type: String
-    Description: Direct database connection URL
-    NoEcho: true
-    Default: ""
-
-  SupabaseUrl:
-    Type: String
-    Description: Supabase URL
-    NoEcho: true
-    Default: ""
-
-  SupabaseKey:
-    Type: String
-    Description: Supabase anonymous key
-    NoEcho: true
-    Default: ""
+    Default: "postgresql://postgres2:Lumia1520@database-2.cf8a068489ao.ap-northeast-1.rds.amazonaws.com:5432"
 
 Resources:
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow Lambda functions to reach VPC resources
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+
+  DependenciesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: nestjs-dependencies
+      Description: Production dependencies for NestJS Lambda functions
+      ContentUri: layer/
+      CompatibleRuntimes:
+        - nodejs18.x
+      RetentionPolicy: Delete
+
   NestJSFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -58,9 +75,6 @@ Resources:
       Environment:
         Variables:
           DATABASE_URL: !Ref DatabaseUrl
-          DIRECT_URL: !Ref DirectUrl
-          SUPABASE_URL: !Ref SupabaseUrl
-          SUPABASE_KEY: !Ref SupabaseKey
 
   WarmupFunction:
     Type: AWS::Serverless::Function
@@ -98,3 +112,15 @@ Outputs:
     Value: !Ref ApiGateway
     Export:
       Name: !Sub "${AWS::StackName}-ApiGatewayId"
+
+  LambdaSecurityGroupId:
+    Description: Security group associated with Lambda functions
+    Value: !Ref LambdaSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-LambdaSecurityGroupId"
+
+  DependenciesLayerArn:
+    Description: ARN of the shared Lambda layer containing production dependencies
+    Value: !Ref DependenciesLayer
+    Export:
+      Name: !Sub "${AWS::StackName}-DependenciesLayerArn"
