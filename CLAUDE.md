@@ -43,14 +43,15 @@ This is a NestJS application configured for serverless deployment on AWS Lambda 
 ### Database Configuration
 The application supports flexible database switching via environment variables:
 - **Supabase**: Uses `SUPABASE_DATABASE_URL`
-- **AWS RDS**: Uses `AWS_DATABASE_URL` or `DATABASE_URL`
-- Priority: AWS_DATABASE_URL → DATABASE_URL → SUPABASE_DATABASE_URL
+- **AWS Aurora**: Uses `DATABASE_URL` (Aurora PostgreSQL cluster)
+- Priority: DATABASE_URL → SUPABASE_DATABASE_URL
 - Configuration handled in `src/prisma.service.ts`
 
 ### Deployment Architecture
-- **Template**: `template.yaml` - SAM CloudFormation template
-- **Configuration**: `samconfig.toml` - Deployment parameters and settings
-- **VPC Integration**: Lambda functions deployed in private subnets with security groups
+- **Template**: `template.yaml` - SAM CloudFormation template with hardcoded VPC configuration
+- **Configuration**: `samconfig.toml` - Simplified deployment parameters
+- **VPC Integration**: Lambda functions deployed in specific private subnets (hardcoded)
+- **Security Group**: Uses existing RDS security group (sg-099a0733182d355fc)
 - **API Gateway**: RESTful API with CORS enabled, binary media type support
 - **Warmup Function**: Scheduled Lambda to prevent cold starts
 

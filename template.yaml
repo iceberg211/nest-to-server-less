@@ -4,7 +4,7 @@ Description: NestJS Serverless Application
 
 Globals:
   Function:
-    Runtime: nodejs18.x
+    Runtime: nodejs20.x
     Timeout: 30
     MemorySize: 512
     Environment:
@@ -12,37 +12,22 @@ Globals:
         NODE_ENV: production
     VpcConfig:
       SecurityGroupIds:
-        - !Ref LambdaSecurityGroup
-      SubnetIds: !Ref PrivateSubnetIds
+        - sg-099a0733182d355fc
+      SubnetIds:
+        - subnet-04bd6cee5b2a017cd
+        - subnet-04228fd6438516ec9
+        - subnet-05f544d8ef3ecbf88
     Layers:
       - !Ref DependenciesLayer
 
 Parameters:
-  VpcId:
-    Type: AWS::EC2::VPC::Id
-    Description: VPC for Lambda functions and database resources
-
-  PrivateSubnetIds:
-    Type: CommaDelimitedList
-    Description: Comma-separated list of private subnet IDs for Lambda functions
-
   DatabaseUrl:
     Type: String
     Description: Database connection URL
     NoEcho: true
-    Default: "postgresql://postgres2:Lumia1520@database-2.cf8a068489ao.ap-northeast-1.rds.amazonaws.com:5432"
+    Default: "postgresql://postgres:password@postgres.cluster-cf8a068489ao.ap-northeast-1.rds.amazonaws.com:5432/postgres"
 
 Resources:
-  LambdaSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Allow Lambda functions to reach VPC resources
-      VpcId: !Ref VpcId
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          FromPort: 0
-          ToPort: 0
-          CidrIp: 0.0.0.0/0
 
   DependenciesLayer:
     Type: AWS::Serverless::LayerVersion
@@ -51,7 +36,7 @@ Resources:
       Description: Production dependencies for NestJS Lambda functions
       ContentUri: layer/
       CompatibleRuntimes:
-        - nodejs18.x
+        - nodejs20.x
       RetentionPolicy: Delete
 
   NestJSFunction:

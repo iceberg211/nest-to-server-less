@@ -14,9 +14,7 @@ region = "ap-northeast-1" # Change to your preferred region
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 parameter_overrides = [
-  "VpcId=vpc-06d8f6eb8f945b72b",
-  "PrivateSubnetIds=\"subnet-01b175c8a1a98ebf0,subnet-0de7e5cd892bf72bb\"",
-  "DatabaseUrl=postgresql://postgres2:Lumia1520@database-2.cf8a068489ao.ap-northeast-1.rds.amazonaws.com:5432"
+  "DatabaseUrl=postgresql://postgres:password@postgres.cluster-cf8a068489ao.ap-northeast-1.rds.amazonaws.com:5432/postgres"
 ]
 
 [default.sync]
