@@ -12,22 +12,33 @@ Globals:
         NODE_ENV: production
     VpcConfig:
       SecurityGroupIds:
-        - sg-099a0733182d355fc
+        - sg-06148d712037fec50
+        - !Ref LambdaSecurityGroup
       SubnetIds:
-        - subnet-04bd6cee5b2a017cd
-        - subnet-04228fd6438516ec9
-        - subnet-05f544d8ef3ecbf88
+        - subnet-007500d7eb02d5a9c
+        - subnet-0144f82913769dc0d
+        - subnet-08e2157684a078b3b
+        - subnet-006a57796b978d0fa
     Layers:
       - !Ref DependenciesLayer
 
 Parameters:
   DatabaseUrl:
     Type: String
-    Description: Database connection URL
+    Description: Aurora PostgreSQL write instance connection URL
     NoEcho: true
-    Default: "postgresql://postgres:password@postgres.cluster-cf8a068489ao.ap-northeast-1.rds.amazonaws.com:5432/postgres"
-
+    Default: "postgresql://postgres:12345678@database-1.cf8a068489ao.ap-northeast-1.rds.amazonaws.com:5432/postgres"
+  
 Resources:
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Lambda functions
+      VpcId: vpc-0b8c7c7a8b9c7d8e9
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
 
   DependenciesLayer:
     Type: AWS::Serverless::LayerVersion

@@ -51,7 +51,7 @@ The application supports flexible database switching via environment variables:
 - **Template**: `template.yaml` - SAM CloudFormation template with hardcoded VPC configuration
 - **Configuration**: `samconfig.toml` - Simplified deployment parameters
 - **VPC Integration**: Lambda functions deployed in specific private subnets (hardcoded)
-- **Security Group**: Uses existing RDS security group (sg-099a0733182d355fc)
+- **Security Group**: Uses existing RDS security group (sg-06148d712037fec50) and Lambda security group
 - **API Gateway**: RESTful API with CORS enabled, binary media type support
 - **Warmup Function**: Scheduled Lambda to prevent cold starts
 
@@ -71,7 +71,7 @@ Database connection priority in PrismaService:
 2. `SUPABASE_DATABASE_URL` (development/demo)
 
 ### SAM Configuration Notes
-- Runtime: Node.js 18.x
+- Runtime: Node.js 20.x
 - Memory: 512MB, Timeout: 30s
 - VPC-enabled with security groups
 - API Gateway with proxy integration for all routes
