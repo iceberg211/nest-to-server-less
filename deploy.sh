@@ -1,136 +1,118 @@
 #!/bin/bash
 
-# NestJS SAM Deployment Script
+set -euo pipefail
 
-set -e
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+cd "$SCRIPT_DIR"
 
-echo "🚀 Starting NestJS SAM deployment..."
+ENV_FILE=".env.production"
 
-# Check if AWS CLI is configured
-if ! aws sts get-caller-identity > /dev/null 2>&1; then
-    echo "❌ AWS CLI is not configured. Please run 'aws configure' first."
-    exit 1
+printf '🚀 Starting production deployment...\n'
+
+if ! command -v aws >/dev/null 2>&1; then
+  printf '❌ AWS CLI is not installed. Install it before deploying.\n'
+  exit 1
 fi
 
-# Check if SAM CLI is installed
-if ! command -v sam &> /dev/null; then
-    echo "❌ AWS SAM CLI is not installed. Please install it first:"
-    echo "   https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html"
-    exit 1
+if ! aws sts get-caller-identity >/dev/null 2>&1; then
+  printf "❌ AWS CLI is not configured. Run 'aws configure' first.\n"
+  exit 1
 fi
 
-# Check if environment variables file exists
-if [[ ! -f ".env.production" ]]; then
-    echo "❌ .env.production file not found."
-    echo "   Please copy .env.production.template to .env.production and fill in your values."
-    exit 1
+if ! command -v sam >/dev/null 2>&1; then
+  printf '❌ AWS SAM CLI is not installed.\n'
+  printf '   https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html\n'
+  exit 1
 fi
 
-# Load environment variables from .env.production
+if [[ ! -f "$ENV_FILE" ]]; then
+  printf "❌ %s file not found.\n" "$ENV_FILE"
+  printf "   Copy .env.production.template to %s and fill in the values.\n" "$ENV_FILE"
+  exit 1
+fi
+
 set -a
-source .env.production
+source "$ENV_FILE"
 set +a
 
-echo "✅ Environment variables loaded"
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  printf "❌ DATABASE_URL is required in %s.\n" "$ENV_FILE"
+  exit 1
+fi
 
-# Build the application for Lambda with optimization
-echo "🔨 Building application for Lambda (optimized)..."
+printf '🧹 Cleaning previous build artifacts...\n'
+rm -rf dist .aws-sam layer
+
+printf '📦 Building Lambda bundle with webpack...\n'
 npx webpack --config webpack.config.js
 
-echo "📦 Preparing Lambda layer..."
-mkdir -p layer/nodejs
-echo '{
+printf '📦 Preparing Lambda layer...\n'
+LAYER_DIR="layer/nodejs"
+mkdir -p "$LAYER_DIR"
+
+cat <<'JSON' > "$LAYER_DIR/package.json"
+{
   "name": "nest-dependencies",
+  "version": "1.0.0",
+  "private": true,
   "dependencies": {
-    "@nestjs/common": "^11.0.1",
-    "@nestjs/core": "^11.0.1",
-    "@nestjs/platform-express": "^11.0.1",
-    "@vendia/serverless-express": "^4.12.6",
-    "express": "^5.1.0",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "@nestjs/common": "11.0.1",
+    "@nestjs/core": "11.0.1",
+    "@nestjs/platform-express": "11.0.1",
+    "@vendia/serverless-express": "4.12.6",
+    "express": "5.1.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.1"
   }
-}' > layer/nodejs/package.json
+}
+JSON
 
-echo "📦 Installing layer dependencies..."
-cd layer/nodejs
-npm install --production --no-package-lock --no-fund --no-audit
+(
+  cd "$LAYER_DIR"
+  npm install --production --no-package-lock --no-fund --no-audit
+)
 
-echo "🧹 Optimizing layer size..."
-find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" -o -name "spec" -o -name "specs" \) -exec rm -rf {} + 2>/dev/null || true
-find node_modules -type d \( -name "example" -o -name "examples" -o -name "docs" -o -name "doc" -o -name "demo" \) -exec rm -rf {} + 2>/dev/null || true
-find node_modules -type f \( -name "*.map" -o -name "*.ts" ! -name "*.d.ts" \) -delete 2>/dev/null || true
-find node_modules -type f \( -name "*.md" -o -name "*.txt" -o -name "*.yml" -o -name "*.yaml" \) -delete 2>/dev/null || true
+LAYER_NODE_MODULES="$LAYER_DIR/node_modules"
 
-echo "📊 Package sizes:"
-echo "Layer size: $(du -sh . | cut -f1)"
-cd ../..
-echo "Function size: $(du -sh dist/ | cut -f1)"
+printf '🧹 Trimming Lambda layer size...\n'
+find "$LAYER_NODE_MODULES" -type d \
+  \( -name 'test' -o -name 'tests' -o -name '__tests__' -o -name 'example' -o -name 'examples' -o -name 'docs' -o -name 'doc' -o -name 'demo' \) \
+  -prune -exec rm -rf '{}' + 2>/dev/null || true
+find "$LAYER_NODE_MODULES" -type f \
+  \( -name '*.md' -o -name '*.txt' -o -name '*.map' -o \( -name '*.ts' ! -name '*.d.ts' \) \) \
+  -delete 2>/dev/null || true
+find "$LAYER_NODE_MODULES" -type f \
+  \( -name 'LICENSE*' -o -name 'CHANGELOG*' -o -name 'HISTORY*' -o -name '.eslintrc*' -o -name '.prettier*' \) \
+  -delete 2>/dev/null || true
 
-echo "⚙️ Copying environment configuration..."
-cp .env.production dist/.env
+printf '🔧 Copying Prisma schema to layer...\n'
+cp prisma/schema.prisma "$LAYER_DIR/"
 
-echo "🔧 Generating Prisma client..."
+printf '⚙️ Writing production environment for runtime...\n'
+cp "$ENV_FILE" dist/.env
+
+printf '🔧 Generating Prisma client...\n'
 npx prisma generate
 
-echo "📦 Installing function-specific dependencies..."
-cd dist
-npm init -y
-npm install --production --no-package-lock --no-fund --no-audit \
-  @prisma/client \
-  pg \
-  axios \
-  @supabase/supabase-js \
-  @types/aws-lambda \
-  @types/pg
-cd ..
-
-echo "📦 Copying generated Prisma client to function directory..."
-
-# 查找实际的Prisma客户端路径
-PRISMA_CLIENT_PATH=$(find node_modules -path "*/@prisma/client" -type d | head -1)
-PRISMA_GENERATED_PATH=$(find node_modules -path "*/.prisma/client" -type d | head -1)
-
-echo "Found Prisma paths:"
-echo "  @prisma/client: $PRISMA_CLIENT_PATH"
-echo "  .prisma/client: $PRISMA_GENERATED_PATH"
-
-mkdir -p dist/node_modules/@prisma
-mkdir -p dist/node_modules/.prisma
-
-if [ -d "$PRISMA_CLIENT_PATH" ]; then
-    mkdir -p dist/node_modules/@prisma/client
-    cp -r "$PRISMA_CLIENT_PATH/"* dist/node_modules/@prisma/client/
+printf '📦 Copying Prisma runtime to function bundle...\n'
+mkdir -p dist/node_modules/@prisma dist/node_modules/.prisma
+cp -R node_modules/@prisma/client dist/node_modules/@prisma/
+if [[ -d node_modules/.prisma/client ]]; then
+  cp -R node_modules/.prisma/client dist/node_modules/.prisma/
 fi
 
-if [ -d "$PRISMA_GENERATED_PATH" ]; then
-    mkdir -p dist/node_modules/.prisma/client
-    cp -r "$PRISMA_GENERATED_PATH/"* dist/node_modules/.prisma/client/
+if [[ -d public ]]; then
+  printf '📂 Copying static assets...\n'
+  cp -R public dist/
 fi
 
-echo "📂 Copying static files..."
-cp -r public dist/
-
-# Update samconfig.toml with environment variables
-echo "📝 Updating SAM configuration with environment variables..."
-
-# Build and deploy with SAM
-echo "🏗️  Building SAM application..."
+printf '🏗️  Building SAM application...\n'
 sam build
 
-echo "🚀 Deploying to AWS..."
-sam deploy \
-  --parameter-overrides \
-    "DatabaseUrl=${DATABASE_URL}"
+printf '🚀 Deploying to AWS...\n'
+sam deploy --parameter-overrides "DatabaseUrl=${DATABASE_URL}"
 
-echo "✅ Deployment completed successfully!"
+printf '🔗 Fetching stack outputs...\n'
+sam list stack-outputs --stack-name nest-serverless
 
-# Get the API endpoint
-echo "🔗 Getting API endpoint..."
-sam list stack-outputs --stack-name nest-serverless --region ap-northeast-1
-
-echo "📋 Next steps:"
-echo "   1. Test your API endpoints"
-echo "   2. Set up custom domain (if needed)"
-echo "   3. Configure monitoring and logging"
-echo "   4. Run database migrations if needed: sam logs -n NestJSFunction --stack-name nest-serverless --tail"
+printf '✅ Deployment completed successfully.\n'

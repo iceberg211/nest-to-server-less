@@ -1,6 +1,6 @@
 const path = require('path');
 
-// Layer中的依赖，这些会被从函数包中排除
+// 这些依赖会随 Lambda Layer 部署，避免被打包进函数代码
 const layerDependencies = [
   '@nestjs/common',
   '@nestjs/core',
@@ -11,15 +11,10 @@ const layerDependencies = [
   'rxjs',
 ];
 
-// 函数包中保留的依赖
-const functionDependencies = [
+const externalDependencies = new Set([
+  ...layerDependencies,
   '@prisma/client',
-  'pg',
-  'axios',
-  '@supabase/supabase-js',
-  '@types/aws-lambda',
-  '@types/pg',
-];
+]);
 
 module.exports = {
   entry: {
@@ -38,12 +33,10 @@ module.exports = {
   },
   externals: [
     ({ request }, callback) => {
-      // 排除layer中的依赖，让Lambda运行时从layer加载
-      if (layerDependencies.includes(request)) {
+      if (request && externalDependencies.has(request)) {
         return callback(null, `commonjs ${request}`);
       }
-      // 对于函数特定的依赖，也排除但稍后会手动复制
-      if (functionDependencies.includes(request)) {
+      if (request && request.startsWith('@prisma/client/')) {
         return callback(null, `commonjs ${request}`);
       }
       callback();
