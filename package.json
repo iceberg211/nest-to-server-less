@@ -8,12 +8,15 @@
   "scripts": {
     "build": "nest build",
     "build:lambda": "rm -rf dist layer && nest build && mkdir -p layer/nodejs && cp package.json pnpm-lock.yaml layer/nodejs/ && cp -R prisma layer/nodejs/prisma && pnpm install --prod --frozen-lockfile --dir layer/nodejs && rm -rf layer/nodejs/prisma",
+    "build:optimized": "bash build-optimized.sh",
+    "build:webpack": "webpack --config webpack.config.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "sam:build": "pnpm run build:lambda && sam build",
+    "sam:build": "pnpm run build:optimized && sam build",
+    "sam:build:legacy": "pnpm run build:lambda && sam build",
     "sam:deploy": "sam deploy --guided",
     "sam:local": "sam local start-api",
     "sam:logs": "sam logs -n NestJSFunction --stack-name nest-serverless --tail",
@@ -64,7 +67,9 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1"
   },
   "jest": {
     "moduleFileExtensions": [

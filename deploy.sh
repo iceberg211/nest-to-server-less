@@ -33,9 +33,83 @@ set +a
 
 echo "✅ Environment variables loaded"
 
-# Build the application for Lambda
-echo "🔨 Building application for Lambda..."
-pnpm run build:lambda
+# Build the application for Lambda with optimization
+echo "🔨 Building application for Lambda (optimized)..."
+npx webpack --config webpack.config.js
+
+echo "📦 Preparing Lambda layer..."
+mkdir -p layer/nodejs
+echo '{
+  "name": "nest-dependencies",
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/platform-express": "^11.0.1",
+    "@vendia/serverless-express": "^4.12.6",
+    "express": "^5.1.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  }
+}' > layer/nodejs/package.json
+
+echo "📦 Installing layer dependencies..."
+cd layer/nodejs
+npm install --production --no-package-lock --no-fund --no-audit
+
+echo "🧹 Optimizing layer size..."
+find node_modules -type d \( -name "test" -o -name "tests" -o -name "__tests__" -o -name "spec" -o -name "specs" \) -exec rm -rf {} + 2>/dev/null || true
+find node_modules -type d \( -name "example" -o -name "examples" -o -name "docs" -o -name "doc" -o -name "demo" \) -exec rm -rf {} + 2>/dev/null || true
+find node_modules -type f \( -name "*.map" -o -name "*.ts" ! -name "*.d.ts" \) -delete 2>/dev/null || true
+find node_modules -type f \( -name "*.md" -o -name "*.txt" -o -name "*.yml" -o -name "*.yaml" \) -delete 2>/dev/null || true
+
+echo "📊 Package sizes:"
+echo "Layer size: $(du -sh . | cut -f1)"
+cd ../..
+echo "Function size: $(du -sh dist/ | cut -f1)"
+
+echo "⚙️ Copying environment configuration..."
+cp .env.production dist/.env
+
+echo "🔧 Generating Prisma client..."
+npx prisma generate
+
+echo "📦 Installing function-specific dependencies..."
+cd dist
+npm init -y
+npm install --production --no-package-lock --no-fund --no-audit \
+  @prisma/client \
+  pg \
+  axios \
+  @supabase/supabase-js \
+  @types/aws-lambda \
+  @types/pg
+cd ..
+
+echo "📦 Copying generated Prisma client to function directory..."
+
+# 查找实际的Prisma客户端路径
+PRISMA_CLIENT_PATH=$(find node_modules -path "*/@prisma/client" -type d | head -1)
+PRISMA_GENERATED_PATH=$(find node_modules -path "*/.prisma/client" -type d | head -1)
+
+echo "Found Prisma paths:"
+echo "  @prisma/client: $PRISMA_CLIENT_PATH"
+echo "  .prisma/client: $PRISMA_GENERATED_PATH"
+
+mkdir -p dist/node_modules/@prisma
+mkdir -p dist/node_modules/.prisma
+
+if [ -d "$PRISMA_CLIENT_PATH" ]; then
+    mkdir -p dist/node_modules/@prisma/client
+    cp -r "$PRISMA_CLIENT_PATH/"* dist/node_modules/@prisma/client/
+fi
+
+if [ -d "$PRISMA_GENERATED_PATH" ]; then
+    mkdir -p dist/node_modules/.prisma/client
+    cp -r "$PRISMA_GENERATED_PATH/"* dist/node_modules/.prisma/client/
+fi
+
+echo "📂 Copying static files..."
+cp -r public dist/
 
 # Update samconfig.toml with environment variables
 echo "📝 Updating SAM configuration with environment variables..."
