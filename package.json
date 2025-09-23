@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "build:lambda": "rm -rf dist layer && nest build && mkdir -p layer/nodejs && cp package.json pnpm-lock.yaml layer/nodejs/ && cp -R prisma layer/nodejs/prisma && pnpm install --prod --frozen-lockfile --dir layer/nodejs && rm -rf layer/nodejs/prisma",
+    "build:lambda": "rm -rf dist layer && DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/postgres} pnpm exec prisma generate && nest build && node scripts/prepare-layer.mjs && pnpm install --prod --dir layer/nodejs && rm -rf layer/nodejs/prisma layer/nodejs/pnpm-lock.yaml",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
