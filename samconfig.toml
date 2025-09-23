@@ -16,6 +16,8 @@ capabilities = "CAPABILITY_IAM"
 parameter_overrides = [
   "DatabaseUrl=postgresql://postgres:12345678@database-1.cf8a068489ao.ap-northeast-1.rds.amazonaws.com",
 ]
+resolve_s3 = false
+image_repositories = []
 
 [default.sync]
 [default.sync.parameters]

@@ -3,7 +3,7 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import serverlessExpress from '@vendia/serverless-express';
 import express from 'express';
-import {
+import type {
   Context,
   APIGatewayProxyEvent,
   APIGatewayProxyResult,
