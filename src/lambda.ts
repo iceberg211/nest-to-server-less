@@ -1,8 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import serverlessExpress from '@vendia/serverless-express';
 import express from 'express';
+import { join } from 'path';
 import type {
   Context,
   APIGatewayProxyEvent,
@@ -14,12 +16,13 @@ let cachedServer: any;
 const bootstrap = async () => {
   if (!cachedServer) {
     const expressApp = express();
-    const app = await NestFactory.create(
+    const app = await NestFactory.create<NestExpressApplication>(
       AppModule,
       new ExpressAdapter(expressApp),
     );
 
     app.enableCors();
+    app.useStaticAssets(join(process.cwd(), 'public'));
     app.setGlobalPrefix('api');
     await app.init();
 

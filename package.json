@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "build:lambda": "rm -rf dist layer && nest build && mkdir -p layer/nodejs && cp package.json pnpm-lock.yaml layer/nodejs/ && cp -R prisma layer/nodejs/prisma && pnpm install --prod --frozen-lockfile --dir layer/nodejs && rm -rf layer/nodejs/prisma",
+    "build:lambda": "rm -rf dist layer && nest build && if [ -d public ]; then cp -R public dist/public; fi && mkdir -p layer/nodejs && cp package.json pnpm-lock.yaml layer/nodejs/ && cp -R prisma layer/nodejs/prisma && pnpm install --prod --frozen-lockfile --dir layer/nodejs && rm -rf layer/nodejs/prisma",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
