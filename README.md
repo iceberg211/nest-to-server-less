@@ -5,6 +5,7 @@
 ## 环境准备
 
 1. **安装 AWS SAM CLI**
+
    ```bash
    # macOS
    brew install aws-sam-cli
@@ -12,13 +13,16 @@
    # 其他平台请参考官方文档
    # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html
    ```
+
 2. **安装项目依赖并拷贝生产环境变量模板**
+
    ```bash
    pnpm install
    cp .env.production.template .env.production
    # 编辑 .env.production，补全数据库、Supabase 等敏感信息
    ```
 3. **配置 AWS 凭证**
+   
    ```bash
    aws configure
    ```
@@ -98,11 +102,13 @@ set -euo pipefail
 ## SAM 部署命令详解
 
 1. **首次部署（推荐 Guided）**
+
    ```bash
    pnpm build:lambda
    pnpm sam:build      # 可选：提前校验打包
    pnpm sam:deploy     # sam deploy --guided
    ```
+
    向导中的常见选项：
    - `Confirm changes before deploy`: 选择 `Y`，部署前审查变更。
    - `Allow SAM CLI IAM role creation`: 选择 `Y`，允许自动创建角色。
@@ -110,10 +116,12 @@ set -euo pipefail
    - `Parameter DatabaseUrl`: 可直接回车使用默认值，或输入自定义地址。
 
 2. **后续部署**
+
    ```bash
    pnpm build:lambda   # 每次部署前都需要运行
    sam deploy          # 使用 samconfig.toml 中的参数
    ```
+
    如果更新了依赖、Prisma Schema 或基础设施，请再次执行 `pnpm sam:build`、`sam validate` 确认。
 
 3. **一键部署脚本**
